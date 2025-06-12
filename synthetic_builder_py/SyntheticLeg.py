@@ -36,6 +36,7 @@ class SyntheticLeg:
         max_lookback : int = None,
         start_year : int = None,
         end_year : int = None,
+        back_adjust_mode : int = 1,
     ):
         if (
             (data_type == DataType.backadjusted and max_lookback == None) or
@@ -80,7 +81,7 @@ class SyntheticLeg:
         self.multiplier = multiplier
         self.max_lookback = max_lookback
         self.df = pd.DataFrame()
-
+        self.back_adjust_mode = back_adjust_mode
 
     def create(
         self,
@@ -172,37 +173,45 @@ class SyntheticLeg:
                     trimmed = temp[temp.index > self.df.index[-1]]
 
                     if self.data_type == DataType.backadjusted:
-                        lookback_itr = 1
-                        diff = None
+                        if self.back_adjust_mode == 1:
+                            lookback_itr = 1
+                            diff = None
+                            
+                            # this should return message like can't backadjust 
+                            if len(self.df.index) < self.max_lookback:
+                                lookback_itr = self.max_lookback + 1
+
+                            while self.max_lookback >= lookback_itr:
+                                diff_date = self.df.index[-lookback_itr]
+
+                                if (
+                                    diff_date in rolled_df_list[-itr].index and
+                                    not pd.isna(self.df.loc[diff_date].close) and
+                                    not pd.isna(rolled_df_list[-itr].loc[diff_date].close)
+                                ):
+                                    diff = rolled_df_list[-itr].loc[diff_date].close
+                                    diff -= self.df.loc[diff_date].close
+                                    break
+
+                                lookback_itr += 1
+
+
+                            if self.max_lookback < lookback_itr:
+                                raise Exception(f"Fail to backadjust at {rt_contract_list[-itr]}\n {lookback_itr=}\n {self.rt_contract=}")
+                                # break # from this onwards we can't backadjust the data 
+                                self.df = pd.DataFrame()
+                                continue     
+
+                            # isFirstBackadjusteSucceed = True
+                            # self.df = self.df + diff
+                            self.df["close"] = self.df["close"] + diff
                         
-                        # this should return message like can't backadjust 
-                        if len(self.df.index) < self.max_lookback:
-                            lookback_itr = self.max_lookback + 1
-
-                        while self.max_lookback >= lookback_itr:
-                            diff_date = self.df.index[-lookback_itr]
-
-                            if (
-                                diff_date in rolled_df_list[-itr].index and
-                                not pd.isna(self.df.loc[diff_date].close) and
-                                not pd.isna(rolled_df_list[-itr].loc[diff_date].close)
-                            ):
-                                diff = rolled_df_list[-itr].loc[diff_date].close
-                                diff -= self.df.loc[diff_date].close
-                                break
-
-                            lookback_itr += 1
-
-
-                        if self.max_lookback < lookback_itr:
-                            raise Exception(f"Fail to backadjust at {rt_contract_list[-itr]}\n {lookback_itr=}\n {self.rt_contract=}")
-                            # break # from this onwards we can't backadjust the data 
-                            self.df = pd.DataFrame()
-                            continue     
-
-                        # isFirstBackadjusteSucceed = True
-                        # self.df = self.df + diff
-                        self.df["close"] = self.df["close"] + diff
+                        elif self.back_adjust_mode == 2:
+                            diff = trimmed.iloc[0].close
+                            diff -= self.df.iloc[-1].close
+                            self.df["close"] = self.df["close"] + diff
+                        else:
+                            raise Exception(f"Invalid backadjust mode")
 
                     self.df = pd.concat([self.df, trimmed])
 

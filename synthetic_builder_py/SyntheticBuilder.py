@@ -13,11 +13,13 @@ class SyntheticBuilder:
         legs : list,
         data_type : DataType,
         start_year : int = None,
+        back_adjust_mode : int = 1,
     ):
         self.legs = legs
         self.data_type = data_type
         self.start_year = start_year
         self.leg_list = []
+        self.back_adjust_mode  = back_adjust_mode
 
         self.df = pd.DataFrame()
 
@@ -34,6 +36,7 @@ class SyntheticBuilder:
                 multiplier = leg["multiplier"],
                 max_lookback = leg["max_lookback"],
                 start_year = self.start_year,
+                back_adjust_mode = self.back_adjust_mode,
             )
 
             # sleg.create()

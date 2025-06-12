@@ -81,6 +81,7 @@ def wrapper(
     start_year : int = 2010,
     offset: int = 10,
     max_lookback_for_back_adjust : int = 10,
+    back_adjust_mode : int = 1,
 ) -> pd.DataFrame:
     
     exp = exp.replace(" ", "")
@@ -134,7 +135,8 @@ def wrapper(
     sb = SyntheticBuilder(
         legs = legs,
         data_type = DataType.backadjusted if back_adjustd else DataType.continuous,
-        start_year=start_year
+        start_year=start_year,
+        back_adjust_mode = back_adjust_mode,
     )
 
     sb.create()
