@@ -207,8 +207,8 @@ class SyntheticLeg:
                             self.df["close"] = self.df["close"] + diff
                         
                         elif self.back_adjust_mode == 2:
-                            diff = trimmed.iloc[0].close
-                            diff -= self.df.iloc[-1].close
+                            diff = trimmed.dropna().iloc[0].close
+                            diff -= self.df.dropna().iloc[-1].close
                             self.df["close"] = self.df["close"] + diff
                         else:
                             raise Exception(f"Invalid backadjust mode")
